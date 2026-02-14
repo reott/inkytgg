@@ -236,6 +236,11 @@ EditorView.setEvents({
     "change": () => {
         LiveCompiler.setEdited();
         NavView.setKnots(InkProject.currentProject.activeInkFile);
+        // Re-evaluate scene on content changes (e.g. writer adds a new ~ bg = "..." line)
+        if (InkProject.currentProject && InkProject.currentProject.activeInkFile) {
+            var pos = EditorView.getCurrentCursorPos();
+            if (pos) SceneStateEvaluator.evaluateAtCursor(pos.row + 1, InkProject.currentProject);
+        }
     },
     "jumpToSymbol": (symbolName, contextPos) => {
         var foundSymbol = InkProject.currentProject.findSymbol(symbolName, contextPos);

@@ -25,6 +25,7 @@ const LiveCompiler = require("./liveCompiler.js").LiveCompiler;
 const InkProject = require("./inkProject.js").InkProject;
 const NavHistory = require("./navHistory.js").NavHistory;
 const GotoAnything = require("./goto.js").GotoAnything;
+const SceneStateEvaluator = require("./sceneStateEvaluator.js").SceneStateEvaluator;
 const i18n = require("./i18n.js");
 
 InkProject.setEvents({
@@ -52,6 +53,8 @@ InkProject.setEvents({
         setImmediate(() => EditorView.setErrors(fileIssues));
         NavView.updateCurrentKnot(inkFile, EditorView.getCurrentCursorPos());
         NavHistory.addStep();
+        var pos = EditorView.getCurrentCursorPos();
+        if (pos) SceneStateEvaluator.evaluateAtCursor(pos.row + 1, InkProject.currentProject);
     }
 });
 
@@ -66,6 +69,11 @@ $(document).ready(() => {
             InkProject.currentProject.mainInk.setValue(testInk);
         }
         NavView.setKnots(InkProject.currentProject.mainInk);
+    }
+    // Initial scene state at cursor (debounced)
+    if (InkProject.currentProject && InkProject.currentProject.activeInkFile) {
+        var pos = EditorView.getCurrentCursorPos();
+        if (pos) SceneStateEvaluator.evaluateAtCursor(pos.row + 1, InkProject.currentProject);
     }
 });
 
@@ -242,11 +250,12 @@ EditorView.setEvents({
         NavHistory.addStep();
     },
     "navigate": () => NavHistory.addStep(),
-    "changedLine": (pos) =>{
-        if (InkProject.currentProject && InkProject.currentProject.activeInkFile){
+    "changedLine": (pos) => {
+        if (InkProject.currentProject && InkProject.currentProject.activeInkFile) {
             NavView.updateCurrentKnot(InkProject.currentProject.activeInkFile, pos);
+            SceneStateEvaluator.evaluateAtCursor(pos.row + 1, InkProject.currentProject);
+        }
     }
-}
 });
 
 PlayerView.setEvents({

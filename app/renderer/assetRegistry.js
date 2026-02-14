@@ -2,18 +2,43 @@
  * Parses the Godot asset_registry.gd file at runtime to map
  * semantic asset IDs to absolute filesystem paths for the scene preview.
  *
- * REMINDER: The tggRoot path is hardcoded for dev (sibling directories).
- * This will NOT work in a packaged/production build. Add a configuration
- * option or settings dialog for the tgg project path before shipping.
+ * Path resolution strategy (tries in order):
+ *   1. Dev mode:  ../../../tgg  relative to __dirname (app/renderer/)
+ *   2. Packaged:  tgg/ inside the exe's directory  (e.g. Inky-win32-x64/tgg/)
+ *   3. Packaged:  tgg/ adjacent to the exe's directory (e.g. alongside Inky-win32-x64/)
  */
 
 const fs = require("fs");
 const path = require("path");
 
-// Resolve the tgg project root relative to this file's location:
-// __dirname = .../inkytgg/app/renderer
-// Go up 3 levels to the parent of inkytgg, then into tgg
-var tggRoot = path.resolve(__dirname, "..", "..", "..", "tgg");
+/**
+ * Search for the tgg project root in multiple locations.
+ * Returns the first path that exists, or a fallback (for error reporting).
+ */
+function findTggRoot() {
+    var candidates = [];
+
+    // 1. Dev mode: __dirname is .../inkytgg/app/renderer
+    candidates.push(path.resolve(__dirname, "..", "..", "..", "tgg"));
+
+    // 2–3. Packaged mode: relative to the Electron executable
+    if (process.execPath) {
+        var exeDir = path.dirname(process.execPath);
+        // tgg inside the app folder  (Inky-win32-x64/tgg/)
+        candidates.push(path.join(exeDir, "tgg"));
+        // tgg next to the app folder (parent/tgg/)
+        candidates.push(path.resolve(exeDir, "..", "tgg"));
+    }
+
+    for (var i = 0; i < candidates.length; i++) {
+        if (fs.existsSync(candidates[i])) return candidates[i];
+    }
+
+    // None found — return first candidate so the error message is useful
+    return candidates[0];
+}
+
+var tggRoot = findTggRoot();
 
 var registryPath = path.join(tggRoot, "scripts", "asset_registry.gd");
 var assetsRoot = path.join(tggRoot);

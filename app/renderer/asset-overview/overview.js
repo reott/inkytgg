@@ -11,6 +11,7 @@ const fs = require("fs");
 const path = require("path");
 const { ipcRenderer } = require("electron");
 const chokidar = require("chokidar");
+const fuzzaldrinPlus = require("fuzzaldrin-plus");
 
 // ============================================================
 // Path resolution (same logic as assetRegistry.js)
@@ -286,30 +287,71 @@ function renderGrid() {
     observeImages();
 }
 
+var SCORE_THRESHOLD = 1;
+
 function filterAssets(assets, filter, search) {
-    var result = [];
+    // 1. Apply category filter first
+    var categoryFiltered = [];
     for (var i = 0; i < assets.length; i++) {
         var a = assets[i];
-
-        // Category filter
         if (filter === "__unregistered__") {
             if (a.registered) continue;
         } else if (filter !== "__all__") {
-            // filter is a folder path like "backgrounds/locations"
             var assetFolderPath = a.dirParts.join("/");
             if (assetFolderPath !== filter && assetFolderPath.indexOf(filter + "/") !== 0) {
                 continue;
             }
         }
+        categoryFiltered.push(a);
+    }
 
-        // Search filter
-        if (search) {
-            var haystack = (a.displayName + " " + a.fileName + " " + a.relPath).toLowerCase();
-            if (haystack.indexOf(search) === -1) continue;
+    // 2. If no search query, return category-filtered results as-is
+    if (!search) return categoryFiltered;
+
+    // 3. Tokenize query
+    var tokens = search.split(/\s+/).filter(function (t) { return t.length > 0; });
+    if (tokens.length === 0) return categoryFiltered;
+
+    // 4. Score each asset against all tokens using fuzzaldrin-plus
+    var tier1 = []; // all tokens match
+    var tier2 = []; // some tokens match
+
+    for (var i = 0; i < categoryFiltered.length; i++) {
+        var a = categoryFiltered[i];
+        var candidate = a.displayName + " " + a.fileName + " " + a.relPath;
+
+        var matchedCount = 0;
+        var totalScore = 0;
+
+        for (var j = 0; j < tokens.length; j++) {
+            var s = fuzzaldrinPlus.score(candidate, tokens[j]);
+            if (s > SCORE_THRESHOLD) {
+                matchedCount++;
+                totalScore += s;
+            }
         }
 
-        result.push(a);
+        if (matchedCount === 0) continue;
+
+        var entry = { asset: a, matchedCount: matchedCount, totalScore: totalScore };
+        if (matchedCount === tokens.length) {
+            tier1.push(entry);
+        } else {
+            tier2.push(entry);
+        }
     }
+
+    // 5. Sort each tier: by matched count desc, then total score desc
+    tier1.sort(function (a, b) { return b.totalScore - a.totalScore; });
+    tier2.sort(function (a, b) {
+        if (b.matchedCount !== a.matchedCount) return b.matchedCount - a.matchedCount;
+        return b.totalScore - a.totalScore;
+    });
+
+    // 6. Combine: tier 1 first, then tier 2
+    var result = [];
+    for (var i = 0; i < tier1.length; i++) result.push(tier1[i].asset);
+    for (var i = 0; i < tier2.length; i++) result.push(tier2[i].asset);
     return result;
 }
 

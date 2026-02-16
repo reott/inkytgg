@@ -3,6 +3,7 @@ const i18n = require("./i18n/i18n.js")
 const {ProjectWindow} = require("./projectWindow.js");
 const {DocumentationWindow} = require("./documentationWindow.js");
 const {AboutWindow} = require("./aboutWindow.js");
+const {AssetOverviewWindow} = require("./assetOverviewWindow.js");
 const {AppMenus} = require('./appmenus.js');
 const {onForceQuit} = require('./forceQuitDetect');
 const {Inklecate} = require("./inklecate.js");
@@ -175,6 +176,9 @@ app.on('ready', function () {
         showAbout: () => {
             AboutWindow.showAboutWindow(ProjectWindow.getViewSettings().theme);
         },
+        openAssetOverview: () => {
+            AssetOverviewWindow.openAssetOverview(ProjectWindow.getViewSettings().theme);
+        },
         keyboardShortcuts: () => {
             var win = ProjectWindow.focused();
             if (win) win.keyboardShortcuts();
@@ -236,6 +240,7 @@ app.on('ready', function () {
         changeTheme: (newTheme) => {
             AboutWindow.changeTheme(newTheme);
             DocumentationWindow.changeTheme(newTheme);
+            AssetOverviewWindow.changeTheme(newTheme);
             ProjectWindow.addOrChangeViewSetting('theme', newTheme)
         }
     });

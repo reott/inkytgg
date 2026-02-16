@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>TGG Asset Overview</title>
+  <link rel="stylesheet" href="overview.css">
+</head>
+<body>
+
+  <div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">Categories</div>
+      <div class="sidebar-filter active" data-filter="__all__">All</div>
+      <div class="sidebar-filter" data-filter="__unregistered__">
+        Unregistered
+        <span class="unregistered-count"></span>
+      </div>
+      <div class="sidebar-separator"></div>
+      <div id="sidebar-tree"></div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="content">
+
+      <!-- Top bar -->
+      <div class="topbar">
+        <input type="text" id="search-input" placeholder="Search assets..." autocomplete="off" spellcheck="false" />
+        <span id="asset-count" class="asset-count"></span>
+      </div>
+
+      <!-- Scrollable grid area -->
+      <div class="grid-scroll">
+        <div id="asset-grid" class="asset-grid"></div>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="empty-state hidden">
+          <p>No assets found.</p>
+        </div>
+      </div>
+
+      <!-- Error state -->
+      <div id="error-state" class="error-state hidden"></div>
+
+    </main>
+
+  </div>
+
+  <!-- Copied toast -->
+  <div id="copy-toast" class="copy-toast hidden">Copied!</div>
+
+  <script>
+    require('./overview.js');
+  </script>
+
+</body>
+</html>

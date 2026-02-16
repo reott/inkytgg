@@ -357,7 +357,17 @@ function refresh() {
         },
         
         inkMenu,
-        
+
+        {
+            label: 'TGG',
+            submenu: [
+                {
+                    label: i18n._('Asset Overview'),
+                    click: callbacks.openAssetOverview
+                }
+            ]
+        },
+
         {
             label: i18n._('&Window'),
             role: 'window',

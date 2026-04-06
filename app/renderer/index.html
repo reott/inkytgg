@@ -150,6 +150,51 @@
         </div>
       </div>
 
+      <div id="tgg-knot-dialog-backdrop" class="hidden">
+        <div id="tgg-knot-dialog">
+          <form id="tgg-knot-dialog-form">
+            <h3>TGG Branching Knot</h3>
+            <p class="tgg-knot-help">Creates choice, pass, fail, and end knots at the current cursor position.</p>
+
+            <label for="tgg-knot-prompt-text">Prompt text</label>
+            <textarea id="tgg-knot-prompt-text" rows="2"></textarea>
+
+            <label for="tgg-knot-base-name">Name</label>
+            <input id="tgg-knot-base-name" type="text" placeholder="customtext" />
+
+            <label for="tgg-knot-character">Character</label>
+            <select id="tgg-knot-character"></select>
+
+            <label>Abilities</label>
+            <div class="tgg-knot-abilities">
+              <label class="tgg-knot-ability negotiation">
+                <input type="checkbox" value="negotiation" />
+                <span>Negotiation</span>
+              </label>
+              <label class="tgg-knot-ability seduction">
+                <input type="checkbox" value="seduction" />
+                <span>Seduction</span>
+              </label>
+              <label class="tgg-knot-ability perception">
+                <input type="checkbox" value="perception" />
+                <span>Perception</span>
+              </label>
+              <label class="tgg-knot-ability coolness">
+                <input type="checkbox" value="coolness" />
+                <span>Coolness</span>
+              </label>
+            </div>
+
+            <div id="tgg-knot-dialog-error" class="hidden"></div>
+
+            <div class="tgg-knot-dialog-actions">
+              <button id="tgg-knot-cancel" type="button" class="btn btn-default">Cancel</button>
+              <button id="tgg-knot-insert" type="submit" class="btn btn-primary">Insert</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
     </div><!-- photon window -->
 
   </body>

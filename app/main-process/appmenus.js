@@ -364,6 +364,11 @@ function refresh() {
                 {
                     label: i18n._('Asset Overview'),
                     click: callbacks.openAssetOverview
+                },
+                {
+                    label: i18n._('Insert Branch'),
+                    enabled: callbacks.isFocusedWindow,
+                    click: (item, focussedWindow) => callbacks.openTggKnotDialog(focussedWindow)
                 }
             ]
         },

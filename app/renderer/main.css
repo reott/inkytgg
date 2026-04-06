@@ -318,6 +318,126 @@ img.issue-icon.warning {
   color: #82C39C;
 }
 
+#tgg-knot-dialog-backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 300;
+}
+
+#tgg-knot-dialog {
+  width: 560px;
+  max-width: calc(100vw - 40px);
+  margin: 70px auto 0;
+  background: #FFF;
+  border: 1px solid #D8D8D8;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+}
+
+#tgg-knot-dialog h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+#tgg-knot-dialog .tgg-knot-help {
+  margin: 0 0 16px;
+  color: #666;
+  white-space: normal;
+}
+
+#tgg-knot-dialog label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  white-space: normal;
+}
+
+#tgg-knot-dialog input,
+#tgg-knot-dialog select,
+#tgg-knot-dialog textarea {
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 8px 10px;
+  border: 1px solid #CCC;
+  border-radius: 4px;
+  background: #FFF;
+  white-space: normal;
+}
+
+#tgg-knot-dialog textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
+#tgg-knot-dialog .tgg-knot-abilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+#tgg-knot-dialog .tgg-knot-ability {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 0;
+  border: 1px solid #DDD;
+  border-radius: 999px;
+  cursor: pointer;
+  font-weight: normal;
+}
+
+#tgg-knot-dialog .tgg-knot-ability input {
+  width: auto;
+  margin: 0;
+}
+
+#tgg-knot-dialog .tgg-knot-ability.negotiation {
+  background: #EAF7EE;
+  border-color: #97C9A6;
+  color: #236A36;
+}
+
+#tgg-knot-dialog .tgg-knot-ability.seduction {
+  background: #FCEBEC;
+  border-color: #E39CA3;
+  color: #A33745;
+}
+
+#tgg-knot-dialog .tgg-knot-ability.perception {
+  background: #EAF1FB;
+  border-color: #93B4E8;
+  color: #2C5EA8;
+}
+
+#tgg-knot-dialog .tgg-knot-ability.coolness {
+  background: #FFF6D9;
+  border-color: #E6CB68;
+  color: #9A7700;
+}
+
+#tgg-knot-dialog-error {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: #FCEBEC;
+  color: #A33745;
+  white-space: normal;
+}
+
+#tgg-knot-dialog .tgg-knot-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
 .sidebar {
   position: absolute;
   display: block;

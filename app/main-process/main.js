@@ -237,6 +237,10 @@ app.on('ready', function () {
             if( focussedWindow )
             focussedWindow.webContents.send('insertSnippet', snippet);
         },
+        openTggKnotDialog: (focussedWindow) => {
+            if( focussedWindow )
+                focussedWindow.webContents.send("open-tgg-knot-dialog");
+        },
         changeTheme: (newTheme) => {
             AboutWindow.changeTheme(newTheme);
             DocumentationWindow.changeTheme(newTheme);

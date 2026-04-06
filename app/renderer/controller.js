@@ -26,6 +26,7 @@ const InkProject = require("./inkProject.js").InkProject;
 const NavHistory = require("./navHistory.js").NavHistory;
 const GotoAnything = require("./goto.js").GotoAnything;
 const SceneStateEvaluator = require("./sceneStateEvaluator.js").SceneStateEvaluator;
+const TggKnotDialog = require("./tggKnotDialog.js").TggKnotDialog;
 const i18n = require("./i18n.js");
 
 InkProject.setEvents({
@@ -75,6 +76,12 @@ $(document).ready(() => {
         var pos = EditorView.getCurrentCursorPos();
         if (pos) SceneStateEvaluator.evaluateAtCursor(pos.row + 1, InkProject.currentProject);
     }
+
+    TggKnotDialog.init({
+        getExistingText: () => EditorView.getValue(),
+        insertSnippet: (snippet) => EditorView.insert(snippet),
+        focusEditor: () => EditorView.focus()
+    });
 });
 
 function gotoIssue(issue) {
@@ -410,4 +417,8 @@ ipc.on("zoom", (event, amount) => {
 
 ipc.on("insertSnippet", (event, snippetContent) => {
     EditorView.insert(snippetContent);
+});
+
+ipc.on("open-tgg-knot-dialog", () => {
+    TggKnotDialog.open();
 });

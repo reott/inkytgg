@@ -76,16 +76,6 @@ body {
   color: white;
 }
 
-.sidebar-filter .unregistered-count {
-  font-size: 11px;
-  opacity: 0.7;
-  margin-left: 4px;
-}
-
-.sidebar-filter.active .unregistered-count {
-  opacity: 0.9;
-}
-
 /* Sidebar tree (collapsible) */
 
 .tree-node {
@@ -270,36 +260,6 @@ body {
   line-height: 1.2;
 }
 
-/* Unregistered card */
-
-.asset-card.unregistered {
-  border-color: #cc4444;
-}
-
-.asset-card.unregistered:hover {
-  border-color: #aa2222;
-  box-shadow: 0 2px 8px rgba(180, 40, 40, 0.2);
-}
-
-.asset-card.unregistered .card-id {
-  color: #aa2222;
-}
-
-.unregistered-badge {
-  display: inline-block;
-  background: #cc4444;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 2px 6px;
-  border-radius: 3px;
-  position: absolute;
-  top: 6px;
-  right: 6px;
-}
-
 /* ---- Empty & error states ---- */
 
 .empty-state {
@@ -438,18 +398,6 @@ body.dark .asset-card .card-id {
 
 body.dark .asset-card .card-filename {
   color: #777;
-}
-
-body.dark .asset-card.unregistered {
-  border-color: #993333;
-}
-
-body.dark .asset-card.unregistered:hover {
-  border-color: #cc4444;
-}
-
-body.dark .asset-card.unregistered .card-id {
-  color: #e06060;
 }
 
 body.dark .empty-state {

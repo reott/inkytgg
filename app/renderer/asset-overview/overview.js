@@ -43,6 +43,7 @@ var assetsDir = path.join(tggRoot, "assets");
 // ============================================================
 
 var IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+var COPY_FILENAME_ONLY_FOLDERS = new Set(["other", "to_be_sorted"]);
 
 // ============================================================
 // Data loading
@@ -96,6 +97,21 @@ function scanImagesRecursive(dir) {
     return results;
 }
 
+function getFileStem(fileName) {
+    return path.parse(fileName).name;
+}
+
+function buildCopyText(dirParts, fileName) {
+    var fileStem = getFileStem(fileName);
+    var topLevelFolder = dirParts[0] || "";
+
+    if (!topLevelFolder || COPY_FILENAME_ONLY_FOLDERS.has(topLevelFolder)) {
+        return fileStem;
+    }
+
+    return '~ ' + topLevelFolder + ' = "' + fileStem + '"';
+}
+
 /**
  * Build the full asset list by cross-referencing registry and disk.
  * Returns { assets: [...], error: string|null }
@@ -107,6 +123,7 @@ function scanImagesRecursive(dir) {
  *   registered:   boolean,
  *   displayName:  string,   // assetId for registered, filename for unregistered
  *   dirParts:     string[], // directory components for tree (e.g. ["backgrounds", "locations"])
+ *   copyText:     string,   // full Ink assignment line or filename-only exception
  * }
  */
 function loadAssets() {
@@ -154,13 +171,15 @@ function loadAssets() {
             registered: assetId !== null,
             displayName: assetId || fileName,
             dirParts: dirParts,
-            fileName: fileName
+            fileName: fileName,
+            copyText: buildCopyText(dirParts, fileName)
         });
     }
 
-    // Sort: registered first, then alphabetical by displayName
+    // Sort by folder path + name so the "All" view follows the asset tree naturally.
     assets.sort(function (a, b) {
-        if (a.registered !== b.registered) return a.registered ? -1 : 1;
+        var byPath = a.relPath.localeCompare(b.relPath);
+        if (byPath !== 0) return byPath;
         return a.displayName.localeCompare(b.displayName);
     });
 
@@ -264,14 +283,11 @@ function renderGrid() {
     var html = "";
     for (var i = 0; i < filtered.length; i++) {
         var asset = filtered[i];
-        var cardClass = "asset-card" + (asset.registered ? "" : " unregistered");
-        var badge = asset.registered ? "" : '<span class="unregistered-badge">Unregistered</span>';
 
-        html += '<div class="' + cardClass + '" data-copy="' + escapeAttr(asset.displayName) + '" title="' + escapeAttr(asset.registered ? asset.assetId + '\n' + asset.relPath : asset.relPath) + '">';
+        html += '<div class="asset-card" data-copy="' + escapeAttr(asset.copyText) + '" title="' + escapeAttr(asset.registered ? asset.assetId + '\n' + asset.relPath : asset.relPath) + '">';
         html += '<div class="card-thumb">';
         // Use data-src for lazy loading via IntersectionObserver (prevents GPU crash from loading hundreds of large PNGs at once)
         html += '<img data-src="file://' + escapeAttr(asset.absPath) + '" alt="" />';
-        html += badge;
         html += '</div>';
         html += '<div class="card-info">';
         html += '<div class="card-id">' + escapeHTML(asset.displayName) + '</div>';
@@ -294,9 +310,7 @@ function filterAssets(assets, filter, search) {
     var categoryFiltered = [];
     for (var i = 0; i < assets.length; i++) {
         var a = assets[i];
-        if (filter === "__unregistered__") {
-            if (a.registered) continue;
-        } else if (filter !== "__all__") {
+        if (filter !== "__all__") {
             var assetFolderPath = a.dirParts.join("/");
             if (assetFolderPath !== filter && assetFolderPath.indexOf(filter + "/") !== 0) {
                 continue;
@@ -399,17 +413,6 @@ function setActiveFilter(filter, activeEl) {
     if (activeEl) activeEl.classList.add("active");
 
     renderGrid();
-}
-
-function updateUnregisteredCount() {
-    var count = 0;
-    for (var i = 0; i < allAssets.length; i++) {
-        if (!allAssets[i].registered) count++;
-    }
-    var el = document.querySelector(".unregistered-count");
-    if (el) {
-        el.textContent = count > 0 ? "(" + count + ")" : "";
-    }
 }
 
 // ============================================================
@@ -532,7 +535,6 @@ function setupWatcher() {
         watcher = chokidar.watch(watchPaths, {
             persistent: true,
             ignoreInitial: true,
-            depth: 6,
             usePolling: false,
             awaitWriteFinish: { stabilityThreshold: 300 }
         });
@@ -569,7 +571,6 @@ function reloadData() {
     // Rebuild sidebar tree
     var tree = buildTree(allAssets);
     document.getElementById("sidebar-tree").innerHTML = renderTreeHTML(tree, 0);
-    updateUnregisteredCount();
 
     renderGrid();
 }

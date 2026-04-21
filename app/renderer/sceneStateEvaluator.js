@@ -88,12 +88,56 @@ function snapshotVariablesState(story) {
 }
 
 /**
+ * Probe the source line where a branch's content actually starts.
+ *
+ * Right after ChooseChoiceIndex, the runtime pointer sits at the start of the
+ * choice's own container — i.e. the `* [...]` line in source. That's not what
+ * we want when the choice is a divert (`* [...] -> test1`): the line we care
+ * about lives inside the divert target.
+ *
+ * So we step the story forward via Continue() until the debug metadata moves
+ * to a line that is past the choice line itself (or, for inline-content
+ * choices, simply lands on the content). We track the minimum line number we
+ * see while stepping; that turns out to be the most reliable indicator of
+ * where the branch's content begins.
+ */
+function probeBranchStartLine(story, cursorFilePath, choiceLineHint) {
+    var bestLine = Infinity;
+
+    function consider(dm) {
+        if (!dm) return;
+        if (!fileMatchesCursor(dm, cursorFilePath)) return;
+        var line = dm.startLineNumber;
+        if (!line) return;
+        // Skip the choice's own line — we want the branch content beyond it.
+        if (choiceLineHint && line === choiceLineHint) return;
+        if (line < bestLine) bestLine = line;
+    }
+
+    var safety = 0;
+    while (story.canContinue && safety < 50) {
+        safety++;
+        try {
+            story.Continue();
+        } catch (e) {
+            break;
+        }
+        consider(story.currentDebugMetadata);
+        // Once we've found a content line, one Continue past the choice is
+        // typically enough; keep going only while we still don't have one.
+        if (bestLine !== Infinity) break;
+    }
+
+    return bestLine;
+}
+
+/**
  * At a choice point, determine which branch to take.
  *
- * After ChooseChoiceIndex(i), currentDebugMetadata gives the source line
- * where the branch content starts. Since branches appear in source order,
- * we pick the last branch whose start line is <= the cursor line.
- * If cursor is before all branches, we default to choice 0.
+ * For each branch we probe the source line where its content starts, then
+ * pick the last branch whose start line is <= the cursor line (branches are
+ * in ascending source order). If the cursor is before all branches we fall
+ * back to choice 0.
  */
 function chooseBranchIndex(story, cursorFilePath, cursorLine) {
     var choices = story.currentChoices;
@@ -102,26 +146,30 @@ function chooseBranchIndex(story, cursorFilePath, cursorLine) {
 
     var savedState = story.state.ToJson();
 
-    // For each branch, find its source start line by checking
-    // currentDebugMetadata right after choosing (before any Continue).
     var branchStartLines = [];
     for (var i = 0; i < choices.length; i++) {
-        if (i > 0) story.state.LoadJson(savedState);
-        story.ChooseChoiceIndex(i);
-
-        var dm = story.currentDebugMetadata;
-        var startLine = (dm && dm.startLineNumber) ? dm.startLineNumber : Infinity;
+        story.state.LoadJson(savedState);
+        try {
+            story.ChooseChoiceIndex(i);
+        } catch (e) {
+            branchStartLines.push(Infinity);
+            continue;
+        }
+        // Read the line of the choice itself so the probe can skip past it.
+        var choiceDm = story.currentDebugMetadata;
+        var choiceLine = (choiceDm && choiceDm.startLineNumber) ? choiceDm.startLineNumber : null;
+        var startLine = probeBranchStartLine(story, cursorFilePath, choiceLine);
         branchStartLines.push(startLine);
     }
 
     story.state.LoadJson(savedState);
 
-    // Pick the last branch whose start line is <= cursor line.
-    // Branches are in ascending source order.
     var bestBranch = 0;
-    for (var i = 0; i < branchStartLines.length; i++) {
-        if (branchStartLines[i] <= cursorLine) {
-            bestBranch = i;
+    var bestLine = -Infinity;
+    for (var j = 0; j < branchStartLines.length; j++) {
+        if (branchStartLines[j] <= cursorLine && branchStartLines[j] >= bestLine) {
+            bestBranch = j;
+            bestLine = branchStartLines[j];
         }
     }
 

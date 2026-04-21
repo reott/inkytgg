@@ -42,9 +42,12 @@ var tggRoot = findTggRoot();
 
 var registryPath = path.join(tggRoot, "scripts", "asset_registry.gd");
 var assetsRoot = path.join(tggRoot);
+var assetsDir = path.join(tggRoot, "assets");
 
 // Cached asset map: { assetId: absoluteFilePath }
 var assetMap = {};
+// Cached disk fallback map: { variableName: { fileStem: absoluteFilePath } }
+var sceneAssetMap = {};
 var registryLoaded = false;
 var loadError = null;
 
@@ -82,11 +85,61 @@ function parseRegistryFile(content) {
     return map;
 }
 
+function scanImagesRecursive(dir) {
+    var results = [];
+    if (!fs.existsSync(dir)) return results;
+
+    var entries;
+    try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (e) {
+        return results;
+    }
+
+    for (var i = 0; i < entries.length; i++) {
+        var entry = entries[i];
+        var fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            results = results.concat(scanImagesRecursive(fullPath));
+        } else if (entry.isFile()) {
+            var ext = path.extname(entry.name).toLowerCase();
+            if (ext === ".png" || ext === ".jpg" || ext === ".jpeg" || ext === ".webp") {
+                results.push(fullPath);
+            }
+        }
+    }
+
+    return results;
+}
+
+function buildSceneAssetMap() {
+    var map = {};
+    var files = scanImagesRecursive(assetsDir);
+
+    for (var i = 0; i < files.length; i++) {
+        var absPath = files[i];
+        var relPath = path.relative(assetsDir, absPath).replace(/\\/g, "/");
+        var parts = relPath.split("/").filter(Boolean);
+        if (parts.length < 2) continue;
+
+        var variableName = parts[0];
+        var fileStem = path.parse(parts[parts.length - 1]).name;
+
+        if (!map[variableName]) map[variableName] = {};
+        if (!(fileStem in map[variableName])) {
+            map[variableName][fileStem] = absPath;
+        }
+    }
+
+    return map;
+}
+
 /**
  * Load (or reload) the asset registry from disk.
  */
 function reloadRegistry() {
     assetMap = {};
+    sceneAssetMap = {};
     registryLoaded = false;
     loadError = null;
 
@@ -96,22 +149,34 @@ function reloadRegistry() {
         return false;
     }
 
-    if (!fs.existsSync(registryPath)) {
-        loadError = "asset_registry.gd not found at: " + registryPath;
+    if (!fs.existsSync(assetsDir)) {
+        loadError = "assets directory not found at: " + assetsDir;
         console.warn("AssetRegistry: " + loadError);
         return false;
     }
 
+    sceneAssetMap = buildSceneAssetMap();
+
     try {
-        var content = fs.readFileSync(registryPath, "utf8");
-        assetMap = parseRegistryFile(content);
+        if (fs.existsSync(registryPath)) {
+            var content = fs.readFileSync(registryPath, "utf8");
+            assetMap = parseRegistryFile(content);
+        } else {
+            console.warn("AssetRegistry: asset_registry.gd not found at: " + registryPath + " (using disk fallback only)");
+        }
         registryLoaded = true;
-        console.log("AssetRegistry: Loaded " + Object.keys(assetMap).length + " assets from " + registryPath);
+        console.log(
+            "AssetRegistry: Loaded " +
+            Object.keys(assetMap).length +
+            " registry assets and " +
+            Object.keys(sceneAssetMap).length +
+            " scene folders"
+        );
         return true;
     } catch (e) {
-        loadError = "Failed to read asset_registry.gd: " + (e.message || e);
-        console.warn("AssetRegistry: " + loadError);
-        return false;
+        console.warn("AssetRegistry: Failed to read asset_registry.gd: " + (e.message || e) + " (using disk fallback only)");
+        registryLoaded = true;
+        return true;
     }
 }
 
@@ -123,6 +188,21 @@ function resolveAssetPath(assetId) {
     if (!registryLoaded) reloadRegistry();
     if (!assetId || assetId === "") return null;
     return assetMap[assetId] || null;
+}
+
+function resolveSceneAssetPath(variableName, assetId) {
+    if (!registryLoaded) reloadRegistry();
+    if (!assetId || assetId === "") return null;
+
+    // First, prefer explicit registry IDs for backwards compatibility.
+    if (assetMap[assetId]) return assetMap[assetId];
+
+    // Then fall back to disk lookup by layer folder + filename stem.
+    var folderMap = sceneAssetMap[variableName];
+    if (!folderMap) return null;
+
+    var fileStem = path.parse(String(assetId)).name;
+    return folderMap[fileStem] || null;
 }
 
 /**
@@ -145,6 +225,7 @@ reloadRegistry();
 
 exports.AssetRegistry = {
     resolveAssetPath: resolveAssetPath,
+    resolveSceneAssetPath: resolveSceneAssetPath,
     reloadRegistry: reloadRegistry,
     getVariableSlots: getVariableSlots,
     getLoadError: getLoadError

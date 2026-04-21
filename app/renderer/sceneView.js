@@ -1,7 +1,7 @@
 /**
  * Renders the scene preview as stacked image layers in the #scene-view panel.
- * Uses asset_registry.gd via assetRegistry.js to resolve ink variable values
- * to actual image file paths.
+ * Uses asset_registry.gd via assetRegistry.js, with a disk-based fallback
+ * by layer folder + filename stem when assets aren't registered.
  */
 
 var AssetRegistry = require("./assetRegistry.js").AssetRegistry;
@@ -16,6 +16,7 @@ var VARIABLE_TO_LAYER = {
     dialogbox:            "dialogbox",
     emotebox:             "emotebox",
     emote:                "emote",
+    ui_menu:              "ui_menu",
     vignette_js:          "vignette_js",
     ui_button_character:  "ui_button_character",
     ui_button_book:       "ui_button_book"
@@ -47,10 +48,15 @@ function updateScene(variables) {
         errEl.classList.add("hidden");
     }
 
-    // Check if registry loaded
+    // Refresh asset sources on each scene update so moved/renamed/new files
+    // are picked up without needing to restart the app.
+    AssetRegistry.reloadRegistry();
+
+    // Check if asset sources loaded
     var registryError = AssetRegistry.getLoadError();
     if (registryError) {
-        showError("Asset registry: " + registryError);
+        showError("Asset preview: " + registryError);
+        return;
     }
 
     if (!variables || typeof variables !== "object") {
@@ -74,15 +80,15 @@ function updateScene(variables) {
             continue;
         }
 
-        var absPath = AssetRegistry.resolveAssetPath(assetId);
+        var absPath = AssetRegistry.resolveSceneAssetPath(varName, assetId);
         if (absPath) {
             el.src = "file://" + absPath;
             el.style.display = "block";
         } else {
-            // Asset ID set but not found in registry — still hide, but log
+            // Asset not found in registry or disk fallback — hide, but log.
             el.style.display = "none";
             el.removeAttribute("src");
-            console.warn("SceneView: Asset not found in registry: " + assetId + " (variable: " + varName + ")");
+            console.warn("SceneView: Asset not found for variable " + varName + ": " + assetId);
         }
     }
 

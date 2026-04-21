@@ -754,28 +754,29 @@ img.issue-icon.warning {
   display: none; /* hidden by default, shown when src is set */
 }
 
-/* UI buttons: special positioning to match Godot layout */
-/* ui_button_character: bottom-left, roughly 260/2560 = ~10% of width */
+/* These UI layers are full-scene 2560x1440 transparent canvases with the
+   button artwork already positioned inside them, so they should fill the
+   entire scene like the other layers. */
 #player #scene-view .scene-layer[data-layer="ui_button_character"] {
-  top: auto;
-  bottom: 0;
+  top: 0;
+  right: auto;
+  bottom: auto;
   left: 0;
-  width: 10.15%;  /* 260/2560 */
-  height: 18.05%; /* 260/1440 */
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  object-position: bottom left;
+  object-position: center;
 }
 
-/* ui_button_book: bottom-right, roughly 260/2560 = ~10% of width */
 #player #scene-view .scene-layer[data-layer="ui_button_book"] {
-  top: auto;
-  bottom: 0;
-  left: auto;
-  right: 0;
-  width: 10.15%;  /* 260/2560 */
-  height: 18.05%; /* 260/1440 */
+  top: 0;
+  right: auto;
+  bottom: auto;
+  left: 0;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  object-position: bottom right;
+  object-position: center;
 }
 
 /* Error overlay */

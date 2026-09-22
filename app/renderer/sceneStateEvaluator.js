@@ -431,6 +431,8 @@ function findOwningArm(router, tp) {
  * For each branch we probe the source line where its content starts, then
  * pick the branch whose start line is closest to (and <= ) the cursor line.
  * If the cursor is before all branches we fall back to choice 0.
+ * A single-option choice still goes through this path so its router
+ * (if any) can be steered — we just skip the "which branch?" pick.
  *
  * Returns the chosen index. When the chosen branch routes through a
  * conditional router (e.g. `{ -var: -> pass -else: -> fail }`), we also
@@ -441,7 +443,6 @@ function findOwningArm(router, tp) {
 function chooseBranchIndex(story, cursorFilePath, cursorLine) {
     var choices = story.currentChoices;
     if (!choices || choices.length === 0) return 0;
-    if (choices.length === 1) return 0;
 
     var branchStartLines = [];
     var branchRoutes = [];
@@ -455,12 +456,18 @@ function chooseBranchIndex(story, cursorFilePath, cursorLine) {
         dbg("  choice", i, "target=", tp, "startLine=", line, "routes=", describeRoutes(probed && probed.routes));
     }
 
+    // With one choice the index is always 0, but we still have to probe
+    // its routes so a skill-check router (`{ -var: -> pass -else: -> fail }`)
+    // can be steered toward the cursor. Skipping that left the runtime
+    // stuck on the default (fail) arm for the rest of the knot.
     var bestBranch = 0;
     var bestLine = -Infinity;
-    for (var j = 0; j < branchStartLines.length; j++) {
-        if (branchStartLines[j] <= cursorLine && branchStartLines[j] >= bestLine) {
-            bestBranch = j;
-            bestLine = branchStartLines[j];
+    if (choices.length > 1) {
+        for (var j = 0; j < branchStartLines.length; j++) {
+            if (branchStartLines[j] <= cursorLine && branchStartLines[j] >= bestLine) {
+                bestBranch = j;
+                bestLine = branchStartLines[j];
+            }
         }
     }
 

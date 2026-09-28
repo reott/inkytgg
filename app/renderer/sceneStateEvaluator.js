@@ -280,6 +280,27 @@ function armConditionValue(arm, condVar) {
 }
 
 /**
+ * If a choice container starts with an unconditional named divert
+ * (`* [label] -> Knot`), return that target path. Ink often attaches
+ * leftover weave after the last option (e.g. `~ emotebox = "..."` sitting
+ * between the choice list and the next knot) as dead content *after* the
+ * divert. That assignment is "real content" for the scanner, but the
+ * runtime never reaches it because the divert fires first. Following the
+ * divert is what lets the preview actually enter the chosen knot.
+ */
+function firstStoryDivertBeforeContent(container) {
+    if (!container || !container.content) return null;
+    for (var i = 0; i < container.content.length; i++) {
+        var c = container.content[i];
+        if (!c) continue;
+        if (isRealContentObject(c)) return null;
+        var tp = divertTargetPath(c);
+        if (tp) return tp;
+    }
+    return null;
+}
+
+/**
  * Like the branch probe used for picking, but returns full route info so
  * the caller can steer conditional routers toward the cursor. Returns
  * { startLine, routes } or null when the choice can't be probed.
@@ -291,6 +312,9 @@ function armConditionValue(arm, condVar) {
  *  - conditionVar / conditionValue: when the route goes through a
  *    conditional router (`{ -var: -> a -else: -> b }`), the variable
  *    whose value selects this route, and the value that steers into it.
+ *
+ * Immediate `* [label] -> Knot` diverts are followed even when leftover
+ * weave is attached after the last option — see firstStoryDivertBeforeContent.
  */
 function probeBranchRoutes(story, choice, cursorFilePath) {
     try {
@@ -298,12 +322,26 @@ function probeBranchRoutes(story, choice, cursorFilePath) {
         var result = story.ContentAtPath(choice.targetPath);
         if (!result || !result.obj) return null;
 
-        var info = scanOneContainer(result.obj, cursorFilePath);
-        if (info.firstContentLine !== Infinity) {
-            return { startLine: info.firstContentLine, routes: [] };
+        var container = result.obj;
+        var immediateDivert = firstStoryDivertBeforeContent(container);
+        if (immediateDivert) {
+            try {
+                var diverted = story.ContentAtPath(immediateDivert);
+                if (diverted && diverted.obj) container = diverted.obj;
+            } catch (e) { /* keep the choice container */ }
         }
 
-        var routes = collectRoutes(story, result.obj, cursorFilePath, {}, 0);
+        var info = scanOneContainer(container, cursorFilePath);
+        if (info.firstContentLine !== Infinity) {
+            // Immediate `-> Knot` used to be reported via collectRoutes as
+            // the target's source range (minLine), not the first assignment.
+            var start = immediateDivert && info.minLine !== Infinity
+                ? info.minLine
+                : info.firstContentLine;
+            return { startLine: start, routes: [] };
+        }
+
+        var routes = collectRoutes(story, container, cursorFilePath, {}, 0);
         var best = Infinity;
         for (var r = 0; r < routes.length; r++) {
             if (routes[r].startLine < best) best = routes[r].startLine;
